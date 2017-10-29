@@ -1,0 +1,32 @@
+body
+{
+    padding-top:0px;
+    margin-top: 0px;
+    
+    background-color: #2b394f;
+}
+
+.color-red
+{
+    color: #b80000;
+}
+
+.color-green
+{
+    color: #47b800;
+}
+
+.color-amber
+{
+    color: #e39722;
+}
+
+.odd
+{
+    background-color: #FFF;
+}
+
+.even
+{
+    background-color: #f7faff;
+}
