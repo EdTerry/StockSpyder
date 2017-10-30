@@ -33,7 +33,6 @@ def addTicker():
         CrawlerThread(binarySemaphore, deviceName.upper(), "", "add").start()
 
         return jsonify(status='OK',message='inserted successfully')
-
     except Exception as e:
         return jsonify(status='ERROR',message=str(e))
 
