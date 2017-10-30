@@ -15,7 +15,7 @@ client = MongoClient('localhost:27017')
 db = client.TickerData
 db.Tickers.create_index([('device', pymongo.ASCENDING)], unique=True)
 
-#TODO: User database with login system
+#TODO: User database with login system. Will probably require seperate lists per user.
 
 binarySemaphore = threading.Semaphore(20)
 
@@ -30,18 +30,8 @@ def addTicker():
         json_data = request.json['info']
         deviceName = json_data['device']
 
-        crawl_pages_nonmultithreaded(deviceName.upper())
+        CrawlerThread(binarySemaphore, deviceName.upper(), "", "add").start()
 
-        if ( getPrice == "" ):
-            return jsonify(status='ERROR',message="Ticker not found in resources.")
-
-        db.Tickers.insert_one({
-            'device':deviceName.upper(),
-            'signal':getSignal,
-            'price':getPrice,
-            'change':getChange,
-            'volume':getVolume,
-            })
         return jsonify(status='OK',message='inserted successfully')
 
     except Exception as e:
@@ -50,6 +40,7 @@ def addTicker():
 @application.route('/')
 def showTickerList():
     return render_template('list.html')
+
 
 @application.route('/getTicker',methods=['POST'])
 def getTicker():
@@ -70,6 +61,7 @@ def getTicker():
     except Exception as e:
         return str(e)
 
+
 @application.route('/updateTicker',methods=['POST'])
 def updateTicker():
     try:
@@ -77,21 +69,12 @@ def updateTicker():
         tickerId = tickerInfo['id']
         device = tickerInfo['device']
 
-        crawl_pages_nonmultithreaded(device.upper())
-
-        db.Tickers.update_one({'_id':ObjectId(tickerId)},
-                            {'$set':{
-                                'device':device.upper(),
-                                'signal':getSignal,
-                                'price':getPrice,
-                                'change':getChange,
-                                'volume':getVolume}})
-
-        # CrawlerThread(binarySemaphore, device.upper(), tickerId).start()
+        CrawlerThread(binarySemaphore, device.upper(), tickerId, "update").start()
 
         return jsonify(status='OK',message='updated successfully')
     except Exception as e:
         return jsonify(status='ERROR',message=str(e))
+
 
 #Refresh Tickers
 @application.route("/refreshTickers",methods=['POST'])
@@ -99,10 +82,8 @@ def refreshTickers():
     try:
         tickers = db.Tickers.find()
 
-        tickerList = []
         for ticker in tickers:
-
-            CrawlerThread(binarySemaphore, ticker['device'], ticker['_id']).start()
+            CrawlerThread(binarySemaphore, ticker['device'], ticker['_id'], "update").start()
 
         return jsonify(status='OK',message='updated successfully')
     except Exception as e:
@@ -126,45 +107,12 @@ def getTickerList():
                     'change':ticker['change'],
                     'volume':ticker['volume'],
                     'id': str(ticker['_id'])
-                    }
+            }
 
             tickerList.append(tickerItem)
     except Exception as e:
         return str(e)
     return json.dumps(tickerList)
-
-# Webcrawler -- Still in use within addTicker and updateTicker. Let's make the move.
-def crawl_pages_nonmultithreaded(ticker):
-    global getSignal
-    global getPrice
-    global getChange
-    global getVolume
-
-    url="https://www.americanbulls.com/m/SignalPage.aspx?lang=en&Ticker="+str(ticker)
-    source_code = requests.get(url)
-    plain_text = source_code.text
-    strainer = SoupStrainer('span',{'id': [ 'MainContent_LastSignal',
-                                            'MainContent_Change',
-                                            'MainContent_ChangePercent']})
-    soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
-    getSignal = soup.find(id="MainContent_LastSignal").string
-    change=soup.find(id="MainContent_Change").string
-    percentchange=soup.find(id="MainContent_ChangePercent").string
-    getChange = change+" ("+percentchange+")"
-
-    url="https://www.stocktwits.com/symbol/"+str(ticker)
-    source_code = requests.get(url)
-    plain_text = source_code.text
-    strainer = SoupStrainer('span',{'class': 'price'})
-    soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
-    getPrice = soup.find(class_="price").string
-
-    url="http://www.nasdaq.com/symbol/"+str(ticker)
-    source_code = requests.get(url)
-    plain_text = source_code.text
-    strainer = SoupStrainer('label',{'id': str(ticker)+'_Volume'})
-    soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
-    getVolume = soup.find(id=str(ticker).upper()+'_Volume').string
 
 @application.route("/deleteTicker",methods=['POST'])
 def deleteTicker():
@@ -178,20 +126,22 @@ def deleteTicker():
 
 # New crawling method with multithreading
 class CrawlerThread(threading.Thread):
-    def __init__(self, binarySemaphore, ticker, tickerId):
+    def __init__(self, binarySemaphore, ticker, tickerId, mode):
+        #print("Init CrawlerThread")
         self.binarySemaphore = binarySemaphore
         self.ticker = ticker
         self.tickerId = tickerId
+        self.mode = mode    #Update/Add
         self.threadId = hash(self)
         threading.Thread.__init__(self)
 
     def run(self):
-        print ("Thread #%d: Reading from %s" + str(self.threadId))
-        self.crawl_pages(self.ticker, self.tickerId)
+        #print ("Thread #%d: Reading from %s" + str(self.threadId))
+        self.crawl_pages(self.ticker, self.tickerId, self.mode)
         self.binarySemaphore.release()
 
     #Parameter to do diff things...
-    def crawl_pages(self, ticker, tickerId):
+    def crawl_pages(self, ticker, tickerId, mode):
         url="https://www.americanbulls.com/m/SignalPage.aspx?lang=en&Ticker="+str(ticker)
         source_code = requests.get(url)
         plain_text = source_code.text
@@ -218,13 +168,21 @@ class CrawlerThread(threading.Thread):
         soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
         getVolume = soup.find(id=str(ticker).upper()+'_Volume').string
 
-        db.Tickers.update_one({'_id':ObjectId(self.tickerId)},
-                            {'$set':{
-                                'device':self.ticker.upper(),
-                                'signal':getSignal,
-                                'price':getPrice,
-                                'change':getChange,
-                                'volume':getVolume}})
+        if ( self.mode == "update" ):
+            db.Tickers.update_one({'_id':ObjectId(self.tickerId)},
+                                {'$set':{
+                                    'device':self.ticker.upper(),
+                                    'signal':getSignal,
+                                    'price':getPrice,
+                                    'change':getChange,
+                                    'volume':getVolume}})
+        elif ( self.mode == "add" ):
+            print("Adding ticker: "+ticker)
+            db.Tickers.insert_one({ 'device':self.ticker.upper(),
+                                    'signal':getSignal,
+                                    'price':getPrice,
+                                    'change':getChange,
+                                    'volume':getVolume})
 
 
 if __name__ == "__main__":
