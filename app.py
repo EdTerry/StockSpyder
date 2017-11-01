@@ -16,6 +16,7 @@ db = client.TickerData
 db.Tickers.create_index([('device', pymongo.ASCENDING)], unique=True)
 
 #TODO: User database with login system. Will probably require seperate lists per user.
+#TODO: In order to fix the issue with the list not updating, make tickerList global.
 
 binarySemaphore = threading.Semaphore(20)
 
@@ -167,7 +168,9 @@ class CrawlerThread(threading.Thread):
         soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
         getVolume = soup.find(id=str(ticker).upper()+'_Volume').string
 
+        # TODO: Refresh needs to happen here..
         if ( self.mode == "update" ):
+            print("Updating ticker: "+ticker)
             db.Tickers.update_one({'_id':ObjectId(self.tickerId)},
                                 {'$set':{
                                     'device':self.ticker.upper(),

@@ -1,5 +1,5 @@
         angular.module('myApp', [])
-            .controller('HomeCtrl', function($scope, $http, $interval) {
+            .controller('HomeCtrl', function($scope, $http, $timeout, $window) {
 
 				$scope.info = {};
 
@@ -13,10 +13,29 @@
 
                 $scope.tickerName = "";
 
-                //Used to test interval
-                var testFunction = function(){
-                    console.log("Testing!");
+                //TODO: Find a way to make it so that update/add (multithreaded)
+                //      update the page view. ($window.location.reload()?)
+
+                //TODO: We want to store the timestamp somewhere to make sure
+                //      page refresh happens at the same for every user
+
+                $scope.pollData = function (interval) {
+                    var startTime = (new Date()).getMinutes();
+
+                    interval = interval || 5000;
+
+                    (function p() {
+                        //console.log("Time: "+(new Date).getMinutes()+"\tStart Time: "+startTime);
+                        if (((new Date).getMinutes() - startTime ) < 0 || ((new Date).getMinutes() - startTime ) >= 3 )  {
+                            startTime = (new Date()).getMinutes();
+                            console.log("Refreshing data");
+                        }
+                        $timeout(p, interval);
+                    })();
                 }
+
+                //Rate at which we check time for refresh
+                $scope.pollData(5000);
 
 				$scope.showlist = function(){
                     $scope.loadComplete = false;
@@ -54,8 +73,6 @@
 						console.log(error);
 					});
 				}
-                //Update every 5 minutes
-                $interval($scope.refreshTickers, 300000);
 
 				$scope.addTicker = function(){
 					$http({
@@ -66,11 +83,13 @@
 						$scope.showlist();
 						$('#addPopUp').modal('hide')
 						$scope.info = {}
+                        console.log("Added.");
 					}, function(error) {
 						console.log(error);
 					});
 				}
 
+                // This function is called when update button is clicked
 				$scope.editTicker = function(id){
 					$scope.info.id = id;
 
@@ -98,6 +117,8 @@
 						console.log(response.data);
 						$scope.showlist();
 						$('#addPopUp').modal('hide')
+
+                        console.log("Updated.");
 					}, function(error) {
 						console.log(error);
 					});
