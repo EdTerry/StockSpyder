@@ -1,5 +1,5 @@
-        angular.module('myApp', [])
-            .controller('HomeCtrl', function($scope, $http, $timeout, $window) {
+        angular.module('myApp', ['ngCookies'])
+            .controller('HomeCtrl', function($scope, $http, $timeout, $window, $cookies) {
 
 				$scope.info = {};
 
@@ -16,22 +16,55 @@
                 //TODO: Find a way to make it so that update/add (multithreaded)
                 //      update the page view. ($window.location.reload()?)
 
-                //TODO: We want to store the timestamp somewhere to make sure
-                //      page refresh happens at the same for every user
-
+                //Cookies keep time in minutes to check for 3 minute intervals.
+                //TODO: Display "Updated at: TIME" on watchlist
+                var now = new $window.Date(),
+                    // this will set cookie expiration to 6 months
+                    exp = new $window.Date(now.getFullYear(), now.getMonth()+6, now.getDate());
                 $scope.pollData = function (interval) {
-                    var startTime = (new Date()).getMinutes();
-
                     interval = interval || 5000;
 
                     (function p() {
-                        //console.log("Time: "+(new Date).getMinutes()+"\tStart Time: "+startTime);
-                        if (((new Date).getMinutes() - startTime ) < 0 || ((new Date).getMinutes() - startTime ) >= 3 )  {
+                        var startTime = (new Date()).getMinutes();
+                        var getStartTimeCookie = $cookies.get("startTime");
+
+                        //Doesn't exist? Let's set it.
+                        if ( !getStartTimeCookie ) {
+                            $cookies.put("startTime", (new Date).getMinutes(), {expires: exp});
+                        }
+
+                        console.log("Time: "+(new Date).getMinutes()+"\tStart Time: "+getStartTimeCookie);
+                        if (((new Date).getMinutes() - getStartTimeCookie ) < 0 || ((new Date).getMinutes() - getStartTimeCookie ) >= 2 )  {
                             startTime = (new Date()).getMinutes();
+                            $cookies.put("startTime", startTime, {expires: exp});
                             console.log("Refreshing data");
+                            //REFRESH! -- TODO: THIS DOES NOT WORK WHEN ANGULAR HASN'T LOADED. Create a JS version
+                            refreshTickers();
+                            //$window.location.reload(true);
                         }
                         $timeout(p, interval);
                     })();
+                }
+
+                function refreshTickers() {
+                    var url = "/refreshTickers";
+                    var method = "POST";
+                    var postData = "";
+
+                    var shouldBeAsync = true;
+
+                    var request = new XMLHttpRequest();
+
+                    request.onload = function () {
+                       var status = request.status; // HTTP response status, e.g., 200 for "200 OK"
+                       var data = request.responseText; // Returned data, e.g., an HTML document.
+                    }
+
+                    request.open(method, url, shouldBeAsync);
+
+                    request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+                    request.send(postData);
                 }
 
                 //Rate at which we check time for refresh
@@ -178,5 +211,5 @@
 					});
 				}
 
-                $scope.refreshTickers();
+                $scope.showlist();
             })

@@ -16,8 +16,8 @@ db = client.TickerData
 db.Tickers.create_index([('device', pymongo.ASCENDING)], unique=True)
 
 #TODO: User database with login system. Will probably require seperate lists per user.
-#TODO: In order to fix the issue with the list not updating, make tickerList global.
-
+#TODO:  In order to fix the issue with the list not updating, make tickerList global.
+#       Then we append to tickerList and check for dups using 'if ITEM not in LIST'
 binarySemaphore = threading.Semaphore(20)
 
 getSignal=""
