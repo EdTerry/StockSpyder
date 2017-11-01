@@ -7,6 +7,8 @@
                 $scope.loadComplete = false;
                 $scope.refreshing = false;
 
+                $scope.lastRefresh = "";
+
                 //Sorting
                 $scope.orderByField = 'device';
                 $scope.reverseSort = false;
@@ -15,9 +17,21 @@
 
                 //TODO: Find a way to make it so that update/add (multithreaded)
                 //      update the page view. ($window.location.reload()?)
+                function getCurrentDate() {
+                var d = new Date(),
+                    minutes = d.getMinutes().toString().length == 1 ? '0'+d.getMinutes() : d.getMinutes(),
+                    hours = d.getHours().toString().length == 1 ? '0'+d.getHours() : d.getHours(),
+                    ampm = d.getHours() >= 12 ? 'pm' : 'am',
+                    months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+                    days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                return days[d.getDay()]+', '+months[d.getMonth()]+' '+d.getDate()+' '+d.getFullYear()+' '+hours+':'+minutes+ampm;
+                }
 
                 //Cookies keep time in minutes to check for 3 minute intervals.
-                //TODO: Display "Updated at: TIME" on watchlist
+                var getLastUpdateCookie = $cookies.get("lastUpdate");
+                if ( getLastUpdateCookie )
+                  $scope.lastRefresh = getLastUpdateCookie;
+
                 var now = new $window.Date(),
                     // this will set cookie expiration to 6 months
                     exp = new $window.Date(now.getFullYear(), now.getMonth()+6, now.getDate());
@@ -28,17 +42,20 @@
                         var startTime = (new Date()).getMinutes();
                         var getStartTimeCookie = $cookies.get("startTime");
 
-                        //Doesn't exist? Let's set it.
+                        //Doesn't exist? Let's set it. Let's also refresh here.
                         if ( !getStartTimeCookie ) {
                             $cookies.put("startTime", (new Date).getMinutes(), {expires: exp});
+                            refreshTickers();
                         }
 
                         console.log("Time: "+(new Date).getMinutes()+"\tStart Time: "+getStartTimeCookie);
-                        if (((new Date).getMinutes() - getStartTimeCookie ) < 0 || ((new Date).getMinutes() - getStartTimeCookie ) >= 2 )  {
+                        if (((new Date).getMinutes() - getStartTimeCookie ) < 0 || ((new Date).getMinutes() - getStartTimeCookie ) >= 3 )  {
                             startTime = (new Date()).getMinutes();
+
                             $cookies.put("startTime", startTime, {expires: exp});
+                            $cookies.put("lastUpdate", getCurrentDate(), {expires: exp});
+                            $scope.lastRefresh = getCurrentDate();
                             console.log("Refreshing data");
-                            //REFRESH! -- TODO: THIS DOES NOT WORK WHEN ANGULAR HASN'T LOADED. Create a JS version
                             refreshTickers();
                             //$window.location.reload(true);
                         }
