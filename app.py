@@ -147,28 +147,42 @@ class CrawlerThread(threading.Thread):
         url="https://www.americanbulls.com/m/SignalPage.aspx?lang=en&Ticker="+str(ticker)
         source_code = requests.get(url)
         plain_text = source_code.text
-        strainer = SoupStrainer('span',{'id': [ 'MainContent_LastSignal',
-                                                'MainContent_Change',
-                                                'MainContent_ChangePercent']})
+        strainer = SoupStrainer('span',{'id': 'MainContent_LastSignal'})
         soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
         getSignal = soup.find(id="MainContent_LastSignal").string
-        change=soup.find(id="MainContent_Change").string
-        percentchange=soup.find(id="MainContent_ChangePercent").string
-        getChange = change+" ("+percentchange+")"
+        # change=soup.find(id="MainContent_Change").string
+        # percentchange=soup.find(id="MainContent_ChangePercent").string
+        # getChange = change+" ("+percentchange+")"
 
-        url="https://www.stocktwits.com/symbol/"+str(ticker)
-        source_code = requests.get(url)
-        plain_text = source_code.text
-        strainer = SoupStrainer('span',{'class': 'price'})
-        soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
-        getPrice = soup.find(class_="price").string
+        # url="https://www.stocktwits.com/symbol/"+str(ticker)
+        # source_code = requests.get(url)
+        # plain_text = source_code.text
+        # strainer = SoupStrainer('span',{'class': 'price'})
+        # soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
+        # getPrice = soup.find(class_="price").string
 
         url="http://www.nasdaq.com/symbol/"+str(ticker)
         source_code = requests.get(url)
         plain_text = source_code.text
-        strainer = SoupStrainer('label',{'id': str(ticker)+'_Volume'})
+        strainer = SoupStrainer(['label',{'id': str(ticker)+'_Volume'},
+                                'div',{'class': ['qwidget-cents qwidget-Green',
+                                                'qwidget-cents qwidget-Red',
+                                                'qwidget-percent qwidget-Green',
+                                                'qwidget-percent qwidget-Red']},
+                                'div',{'id':'qwidget_lastsale'}])
         soup = BeautifulSoup(plain_text, "lxml", parse_only=strainer)
         getVolume = soup.find(id=str(ticker).upper()+'_Volume').string
+        getPrice = soup.find(id="qwidget_lastsale").string
+        if ( soup.find(class_='qwidget-cents qwidget-Green') ):
+            percent = soup.find(class_='qwidget-percent qwidget-Green').string
+            change = soup.find(class_='qwidget-cents qwidget-Green').string
+            change = str(round(float(change),3))
+            getChange= "+"+change+" ("+percent+")"
+        elif ( soup.find(class_='qwidget-cents qwidget-Red') ):
+            percent = soup.find(class_='qwidget-percent qwidget-Red').string
+            change = soup.find(class_='qwidget-cents qwidget-Red').string
+            change = str(round(float(change),3))
+            getChange= "-"+change+" ("+percent+")"
 
         # TODO: Refresh needs to happen here..
         if ( self.mode == "update" ):

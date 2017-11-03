@@ -8,7 +8,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
-    <link rel="icon" href="../../favicon.ico">
+    <link rel="icon" href="../static/images/favicon.ico">
 
     <title>StockSpyder</title>
 
@@ -72,7 +72,7 @@
 
         <div class="bs-example" data-example-id="panel-without-body-with-table">
             <div class="panel panel-default">
-                <div class="panel-heading" style="overflow:auto;"><div style="float:left;">WATCHLIST</div><div style="float:right;">Last Updated: {{ '{{lastRefresh}}' }}</div></div>
+                <div class="panel-heading" style="overflow:auto;"><div style="float:left;font-weight:bold;">WATCHLIST</div><div style="float:right;font-size:10px;font-weight:bold;">Last Updated: {{ '{{lastRefresh}}' }}</div></div>
                 <table class="table">
                     <thead>
                         <tr>
@@ -111,7 +111,11 @@
                                     {{'{{ticker.change}}'}}
                                 </div>
                             </td>
-                            <td>{{'{{ticker.volume}}'}}</td>
+                            <td>
+                            <a href="#" ng-click="showStockTwits(ticker.device)">
+                                {{'{{ticker.volume}}'}}
+                            </a>
+                            </td>
                             <td>
                                 <span ng-class="{
                                     'color-amber': ticker.signal === 'STAY IN CASH',
@@ -133,7 +137,7 @@
             </div>
         </div>
 
-            <div id="footercontainer3" class="footercontainer3_00" style="font-size:10px; color:#FFF; margin-top:20px">
+            <div id="footercontainer3" class="footercontainer3_00" style="font-size:10px; color:#FFF; margin-top:50px">
                     <p id="DisclaimerHeader">Disclaimers:</p>
 
 

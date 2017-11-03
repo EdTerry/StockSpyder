@@ -176,6 +176,9 @@
 					});
 				}
 
+                $scope.showStockTwits = function(tickerName){
+                    window.open("https://stocktwits.com/symbol/"+tickerName+"?popout=true&substream=top", "newwindow", "width=800,height=600");
+                }
 
 				$scope.showTickerChart = function(tickerName){
 					$scope.showChart = true;
