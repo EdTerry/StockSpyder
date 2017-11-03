@@ -15,8 +15,6 @@
 
                 $scope.tickerName = "";
 
-                //TODO: Find a way to make it so that update/add (multithreaded)
-                //      update the page view. ($window.location.reload()?)
                 function getCurrentDate() {
                 var d = new Date(),
                     minutes = d.getMinutes().toString().length == 1 ? '0'+d.getMinutes() : d.getMinutes(),
@@ -85,6 +83,7 @@
                     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
                     request.send(postData);
+                    $timeout($window.location.reload(true), 3000);
                 }
 
                 //Rate at which we check time for refresh
