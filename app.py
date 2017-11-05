@@ -18,7 +18,7 @@ db.Tickers.create_index([('device', pymongo.ASCENDING)], unique=True)
 #TODO: User database with login system. Will probably require seperate lists per user.
 #TODO:  In order to fix the issue with the list not updating, make tickerList global.
 #       Then we append to tickerList and check for dups using 'if ITEM not in LIST'
-
+finished = False
 max_connections = 20
 binarySemaphore = threading.Semaphore(max_connections)
 
@@ -41,6 +41,8 @@ def addTicker():
 
 @application.route('/')
 def showTickerList():
+    global finished
+    finished=False
     return render_template('list.html')
 
 
@@ -112,6 +114,7 @@ def getTickerList():
             }
 
             tickerList.append(tickerItem)
+
     except Exception as e:
         return str(e)
     return json.dumps(tickerList)
@@ -185,6 +188,7 @@ class CrawlerThread(threading.Thread):
             getChange= "-"+change+" ("+percent+")"
 
         # TODO: Refresh needs to happen here..
+        global finished
         if ( self.mode == "update" ):
             print("Updating ticker: "+ticker)
             db.Tickers.update_one({'_id':ObjectId(self.tickerId)},
@@ -194,6 +198,8 @@ class CrawlerThread(threading.Thread):
                                     'price':getPrice,
                                     'change':getChange,
                                     'volume':getVolume}})
+
+        #    finished=True
         elif ( self.mode == "add" ):
             print("Adding ticker: "+ticker)
             db.Tickers.insert_one({ 'device':self.ticker.upper(),
@@ -201,7 +207,13 @@ class CrawlerThread(threading.Thread):
                                     'price':getPrice,
                                     'change':getChange,
                                     'volume':getVolume})
+        finished=True
 
+
+@application.route("/status")
+def getThreadStatus():
+    with application.test_request_context():
+        return jsonify(dict(status=('finished' if finished else 'running')))
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0')

@@ -56,9 +56,18 @@
                             $cookies.put("startTime", startTime, {expires: exp});
                             $cookies.put("lastUpdate", getCurrentDate(), {expires: exp});
                             $scope.lastRefresh = getCurrentDate();
-                            console.log("Refreshing data");
-                            refreshTickers();
-                            //$window.location.reload(true);
+
+                            var d = new Date(),
+                                days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+                            if ( (d.getHours() >= 8 && d.getHours() <= 20) && !(days[d.getDay()] == "Sat" || days[d.getDay()] == "Sun") ) {
+                                console.log("Refreshing data");
+                                refreshTickers();
+                            }
+                            else
+                            {
+                                console.log( d.getHours()+", "+days[d.getDay()]+" - Afterhours. Do not refresh tickers.");
+                            }
                         }
                         $timeout(p, interval);
                     })();
@@ -88,6 +97,21 @@
 
                 //Rate at which we check time for refresh
                 $scope.pollData(5000);
+
+                 $scope.checkStatus = function() {
+                //    console.log("Checking status...");
+                    (function checkStatusUpdate() {
+                    $http.get('/status')
+                        .then(function(response) {
+                        //    console.log(response.data);
+                            if (response.data['status'] == 'finished') {
+                             $timeout($window.location.reload(true), 3000);
+                            }
+                        });
+                    $timeout(checkStatusUpdate,2000);
+                    })();
+                }
+                $scope.checkStatus(5000);
 
 				$scope.showlist = function(){
                     $scope.loadComplete = false;
@@ -155,6 +179,7 @@
 						console.log(response);
 						$scope.info = response.data;
 						$('#addPopUp').modal('show')
+                        $window.document.getElementById("txtDevice").focus();
 					}, function(error) {
 						console.log(error);
 					});
@@ -192,6 +217,7 @@
 					$scope.showAdd = true;
 					$scope.info = {};
 					$('#addPopUp').modal('show')
+                    $window.document.getElementById("txtDevice").focus();
 				}
 
 				$scope.showRunPopUp = function(id){
