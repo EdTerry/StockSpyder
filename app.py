@@ -11,6 +11,10 @@ import lxml
 
 application = Flask(__name__)
 
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 client = MongoClient('localhost:27017')
 db = client.TickerData
 db.Tickers.create_index([('device', pymongo.ASCENDING)], unique=True)

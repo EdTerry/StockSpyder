@@ -60,7 +60,7 @@
                             var d = new Date(),
                                 days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-                            if ( (d.getHours() >= 8 && d.getHours() <= 20) && !(days[d.getDay()] == "Sat" || days[d.getDay()] == "Sun") ) {
+                            if ( /*(d.getHours() >= 8 && d.getHours() <= 20) &&*/ !(days[d.getDay()] == "Sat" || days[d.getDay()] == "Sun") ) {
                                 console.log("Refreshing data");
                                 refreshTickers();
                             }
@@ -105,10 +105,10 @@
                         .then(function(response) {
                         //    console.log(response.data);
                             if (response.data['status'] == 'finished') {
-                             $timeout($window.location.reload(true), 3000);
+                             $timeout($window.location.reload(true), 0);
                             }
                         });
-                    $timeout(checkStatusUpdate,2000);
+                    $timeout(checkStatusUpdate,1000);
                     })();
                 }
                 $scope.checkStatus(5000);
