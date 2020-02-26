@@ -25,6 +25,8 @@ class CrawlerThread(threading.Thread):
         global getPrice
         global getChange
         global getVolume
+        
+        global TestVar
 
         url="https://www.americanbulls.com/m/SignalPage.aspx?lang=en&Ticker="+str(ticker)
         source_code = requests.get(url)
